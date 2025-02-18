@@ -20,7 +20,6 @@ target/
 *.ipr
 mvnw
 mvnw.cmd
-pom.xml
 .gitattributes
 
 ### NetBeans ###

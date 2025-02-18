@@ -1,10 +1,10 @@
-package com.example.bicycledillercenter;
+package com.bikedc;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class BicycleDillerCenterApplicationTests {
+class BicycleDialerCenterApplicationTests {
 
     @Test
     void contextLoads() {

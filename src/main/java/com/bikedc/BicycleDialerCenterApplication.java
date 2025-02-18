@@ -1,11 +1,11 @@
-package com.example.bicycledillercenter;
+package com.bikedc;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BicycleDillerCenterApplication {
+public class BicycleDialerCenterApplication {
     public static void main(String[] args) {
-        SpringApplication.run(BicycleDillerCenterApplication.class, args);
+        SpringApplication.run(BicycleDialerCenterApplication.class, args);
     }
 }
