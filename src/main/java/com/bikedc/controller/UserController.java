@@ -30,7 +30,12 @@ public class UserController {
     public ResponseEntity<List<User>> getUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email) {
-        List<User> users = userService.getUsersByUsernameAndEmail(username, email);
+        List<User> users;
+        if (username != null || email != null) {
+            users = userService.getUsersByUsernameAndEmail(username, email);
+        } else {
+            users = List.of();
+        }
         return ResponseEntity.ok(users);
     }
 

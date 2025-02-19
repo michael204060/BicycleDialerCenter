@@ -19,13 +19,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> getUsersByUsernameAndEmail(String username, String email) {
-        if (username == null) {
-            username = "";
-        }
-        if (email == null) {
-            email = "";
-        }
-        return userDao.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(username, email);
+        return userDao.findByUsernameOrEmail(username, email);
     }
 
     @Override
