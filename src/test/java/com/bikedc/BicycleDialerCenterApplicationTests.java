@@ -8,6 +8,6 @@ class BicycleDialerCenterApplicationTests {
 
     @Test
     void contextLoads() {
+        //This checks whether context is empty
     }
-
 }
