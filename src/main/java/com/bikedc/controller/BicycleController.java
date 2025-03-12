@@ -2,6 +2,7 @@ package com.bikedc.controller;
 
 import com.bikedc.exception.ResourceNotFoundException;
 import com.bikedc.model.Bicycle;
+import com.bikedc.model.UserBicycle;
 import com.bikedc.service.BicycleService;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,17 @@ public class BicycleController {
     public ResponseEntity<Bicycle> createBicycle(@RequestBody Bicycle bicycle) {
         Bicycle createdBicycle = bicycleService.createBicycle(bicycle);
         return ResponseEntity.ok(createdBicycle);
+    }
+
+    @PostMapping("/{bicycleId}/rent/{userId}")
+    public ResponseEntity<UserBicycle> rentBicycle(@PathVariable Long bicycleId, @PathVariable Long userId) {
+        return ResponseEntity.ok(bicycleService.rentBicycle(userId, bicycleId));
+    }
+
+    @PostMapping("/{bicycleId}/return/{userId}")
+    public ResponseEntity<UserBicycle> returnBicycle(@PathVariable Long bicycleId,
+                                                     @PathVariable Long userId) {
+        return ResponseEntity.ok(bicycleService.returnBicycle(userId, bicycleId));
     }
 
     @PutMapping("/{id}")
