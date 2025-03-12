@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BicycleDealerCenterApplication {
+public class BicycleDialerCenterApplication {
     public static void main(String[] args) {
-        SpringApplication.run(BicycleDealerCenterApplication.class, args);
+        SpringApplication.run(BicycleDialerCenterApplication.class, args);
     }
 }

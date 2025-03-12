@@ -23,9 +23,6 @@ mvnw.cmd
 .gitattributes
 src/main/resources/application.properties
 
-
-### Plan UML files
-relations.puml
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

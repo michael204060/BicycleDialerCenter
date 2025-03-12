@@ -1,12 +1,10 @@
 package com.bikedc.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -15,25 +13,34 @@ import java.util.Objects;
 public class Bicycle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
     private String brand;
     private String model;
     private String type;
     private BigDecimal price;
 
-    @Version
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private Long version;
-
-    public Bicycle() {}
-
-    public Long getId() {
-        return id;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Bicycle bicycle = (Bicycle) o;
+        return Objects.equals(id, bicycle.id);
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return "Bicycle{" +
+                "id=" + id +
+                ", brand='" + brand + '\'' +
+                ", model='" + model + '\'' +
+                ", type='" + type + '\'' +
+                ", price=" + price +
+                '}';
     }
 
     public String getBrand() {
@@ -66,24 +73,5 @@ public class Bicycle {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Bicycle bicycle = (Bicycle) o;
-        return Objects.equals(id, bicycle.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Bicycle{" + "id=" + id + ", brand='" + brand + '\'' + ", model='" + model + '\'' + "," +
-                " type='" + type + '\'' + ", price=" + price + ", version=" + version + '}';
     }
 }
