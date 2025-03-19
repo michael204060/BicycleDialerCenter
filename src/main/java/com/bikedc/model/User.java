@@ -1,11 +1,7 @@
 package com.bikedc.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import java.util.Objects;
 
 @Entity
@@ -13,6 +9,7 @@ import java.util.Objects;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -21,27 +18,24 @@ public class User {
     @Column(unique = true)
     private String email;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return Objects.equals(id, user.id);
+    @Version
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private Long version;
+
+    public User() {}
+
+    public User(String username, String password, String email) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
+    public Long getId() {
+        return id;
     }
 
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", username='" + username + '\'' +
-                ", password='" + password + '\'' +
-                ", email='" + email + '\'' +
-                '}';
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getUsername() {
@@ -66,5 +60,26 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

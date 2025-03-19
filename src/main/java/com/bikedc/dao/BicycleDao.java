@@ -8,4 +8,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BicycleDao extends JpaRepository<Bicycle, Long> {
     List<Bicycle> findByBrandContainingIgnoreCaseOrModelContainingIgnoreCase(String brand, String model);
+
+    List<Bicycle> findByBrandContainingIgnoreCase(String brand);
+
+    List<Bicycle> findByModelContainingIgnoreCase(String model);
+
+    List<Bicycle> findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase(String brand, String model);
 }

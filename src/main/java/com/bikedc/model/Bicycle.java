@@ -1,11 +1,9 @@
 package com.bikedc.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
+import jakarta.persistence.*;
 import java.util.Objects;
 
 @Entity
@@ -13,34 +11,31 @@ import java.util.Objects;
 public class Bicycle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
     private String brand;
     private String model;
     private String type;
     private BigDecimal price;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Bicycle bicycle = (Bicycle) o;
-        return Objects.equals(id, bicycle.id);
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "owner_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer",
+            "handler", "userBicycles"})
+    private User owner;
+
+    @Version
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private Long version;
+
+    public Bicycle() {}
+
+    public Long getId() {
+        return id;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Bicycle{" +
-                "id=" + id +
-                ", brand='" + brand + '\'' +
-                ", model='" + model + '\'' +
-                ", type='" + type + '\'' +
-                ", price=" + price +
-                '}';
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getBrand() {
@@ -73,5 +68,34 @@ public class Bicycle {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Bicycle bicycle = (Bicycle) o;
+        return Objects.equals(id, bicycle.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

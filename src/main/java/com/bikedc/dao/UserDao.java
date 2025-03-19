@@ -13,3 +13,4 @@ public interface UserDao extends JpaRepository<User, Long> {
             " AND (:email IS NULL OR u.email = :email)")
     List<User> findByUsernameOrEmail(@Param("username") String username, @Param("email") String email);
 }
+

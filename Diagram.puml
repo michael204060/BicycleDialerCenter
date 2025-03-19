@@ -1,0 +1,29 @@
+@startuml
+entity User {
+    * id : Long
+    username : String
+    password : String
+    email : String
+    version : Long
+}
+
+entity Bicycle {
+    * id : Long
+    brand : String
+    model : String
+    type : String
+    price : BigDecimal
+    version : Long
+}
+
+entity UserBicycle {
+    * userId : Long
+    * bicycleId : Long
+    rentStartTime : LocalDateTime
+    rentEndTime : LocalDateTime
+}
+
+User "1" -- "*" UserBicycle : rents
+Bicycle "1" -- "*" UserBicycle : rented by
+User "1" -- "*" Bicycle : owns
+@enduml
