@@ -44,6 +44,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
+        // Сначала обновляем велосипеды, удаляя ссылку на владельца
+        userDao.unlinkBicyclesFromUser(id);
+        // Затем удаляем пользователя
         userDao.deleteById(id);
     }
 }
