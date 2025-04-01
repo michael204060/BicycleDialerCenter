@@ -10,10 +10,11 @@ import com.bikedc.model.UserBicycle;
 import com.bikedc.service.BicycleService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +35,11 @@ public class BicycleServiceImpl implements BicycleService {
     @PersistenceContext
     private EntityManager entityManager;
 
+
     @Override
     public List<Bicycle> getBicyclesByBrandAndModel(String brand, String model) {
         if (brand == null && model == null) {
-            return new ArrayList<>();
+            return bicycleDao.findAll();
         }
         if (brand != null && model != null) {
             return bicycleDao.findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase(brand, model);
@@ -62,12 +64,12 @@ public class BicycleServiceImpl implements BicycleService {
         return bicycleDao.save(bicycle);
     }
 
+
     @Override
     public Bicycle updateBicycle(Bicycle bicycle) {
         if (bicycle.getOwner() != null) {
             bicycle.setOwner(entityManager.merge(bicycle.getOwner()));
         }
-
         return bicycleDao.save(bicycle);
     }
 
@@ -90,10 +92,7 @@ public class BicycleServiceImpl implements BicycleService {
     public UserBicycle returnBicycle(Long userId, Long bicycleId) {
         UserBicycle.UserBicycleId id = new UserBicycle.UserBicycleId(userId, bicycleId);
         UserBicycle userBicycle = userBicycleDao.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Rental record" +
-                        " not found for user " + userId +
-                        " and bicycle " + bicycleId));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Rental record not found for user " + userId + " and bicycle " + bicycleId));
         userBicycle.setRentEndTime(LocalDateTime.now());
         return userBicycleDao.save(userBicycle);
     }

@@ -49,7 +49,6 @@ public class BicycleController {
         return ResponseEntity.ok(new BicycleResponseDTO(bicycle));
     }
 
-    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
     @PostMapping
     @Transactional
     public ResponseEntity<BicycleResponseDTO> createBicycle(@RequestBody BicycleDTO bicycleDTO) {
@@ -72,11 +71,10 @@ public class BicycleController {
         return ResponseEntity.ok(new BicycleResponseDTO(createdBicycle));
     }
 
-    @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+
     @PutMapping("/{id}")
     @Transactional
-    public ResponseEntity<BicycleResponseDTO> updateBicycle(@PathVariable Long id,
-                                                            @RequestBody BicycleDTO bicycleDTO) {
+    public ResponseEntity<BicycleResponseDTO> updateBicycle(@PathVariable Long id, @RequestBody BicycleDTO bicycleDTO) {
         Bicycle bicycle = bicycleService.getBicycleById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + id));
 
@@ -104,10 +102,10 @@ public class BicycleController {
     }
 
     @PostMapping("/{bicycleId}/return/{userId}")
-    public ResponseEntity<UserBicycle> returnBicycle(@PathVariable Long bicycleId,
-                                                     @PathVariable Long userId) {
+    public ResponseEntity<UserBicycle> returnBicycle(@PathVariable Long bicycleId, @PathVariable Long userId) {
         return ResponseEntity.ok(bicycleService.returnBicycle(userId, bicycleId));
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBicycle(@PathVariable Long id) {
