@@ -10,12 +10,13 @@ import com.bikedc.service.BicycleService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/bicycles")
@@ -36,6 +37,15 @@ public class BicycleController {
             @RequestParam(required = false) String model
     ) {
         List<Bicycle> bicycles = bicycleService.getBicyclesByBrandAndModel(brand, model);
+        List<BicycleResponseDTO> dtos = bicycles.stream()
+                .map(BicycleResponseDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/owner/{ownerId}")
+    public ResponseEntity<List<BicycleResponseDTO>> getBicyclesByOwner(@PathVariable Long ownerId) {
+        List<Bicycle> bicycles = bicycleService.getBicyclesByOwner(ownerId);
         List<BicycleResponseDTO> dtos = bicycles.stream()
                 .map(BicycleResponseDTO::new)
                 .collect(Collectors.toList());
@@ -71,7 +81,6 @@ public class BicycleController {
         return ResponseEntity.ok(new BicycleResponseDTO(createdBicycle));
     }
 
-
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<BicycleResponseDTO> updateBicycle(@PathVariable Long id, @RequestBody BicycleDTO bicycleDTO) {
@@ -105,7 +114,6 @@ public class BicycleController {
     public ResponseEntity<UserBicycle> returnBicycle(@PathVariable Long bicycleId, @PathVariable Long userId) {
         return ResponseEntity.ok(bicycleService.returnBicycle(userId, bicycleId));
     }
-
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBicycle(@PathVariable Long id) {

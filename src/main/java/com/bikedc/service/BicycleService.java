@@ -15,6 +15,8 @@ public interface BicycleService {
 
     List<Bicycle> getBicyclesByBrandAndModel(String brand, String model);
 
+    List<Bicycle> getBicyclesByOwner(Long ownerId);
+
     Optional<Bicycle> getBicycleById(Long id);
 
     @Transactional

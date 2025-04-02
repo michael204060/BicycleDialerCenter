@@ -1,5 +1,6 @@
 package com.bikedc.service.impl;
 
+import com.bikedc.cache.BicycleCache;
 import com.bikedc.dao.BicycleDao;
 import com.bikedc.dao.UserBicycleDao;
 import com.bikedc.dao.UserDao;
@@ -10,31 +11,34 @@ import com.bikedc.model.UserBicycle;
 import com.bikedc.service.BicycleService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class BicycleServiceImpl implements BicycleService {
     private final BicycleDao bicycleDao;
     private final UserBicycleDao userBicycleDao;
     private final UserDao userDao;
+    private final BicycleCache bicycleCache;
 
     @Autowired
-    public BicycleServiceImpl(BicycleDao bicycleDao, UserBicycleDao userBicycleDao, UserDao userDao) {
+    public BicycleServiceImpl(BicycleDao bicycleDao,
+                              UserBicycleDao userBicycleDao,
+                              UserDao userDao,
+                              BicycleCache bicycleCache) {
         this.bicycleDao = bicycleDao;
         this.userBicycleDao = userBicycleDao;
         this.userDao = userDao;
+        this.bicycleCache = bicycleCache;
     }
 
     @PersistenceContext
     private EntityManager entityManager;
-
 
     @Override
     public List<Bicycle> getBicyclesByBrandAndModel(String brand, String model) {
@@ -51,8 +55,19 @@ public class BicycleServiceImpl implements BicycleService {
     }
 
     @Override
+    public List<Bicycle> getBicyclesByOwner(Long ownerId) {
+        return bicycleDao.findByOwnerId(ownerId);
+    }
+
+    @Override
     public Optional<Bicycle> getBicycleById(Long id) {
-        return bicycleDao.findById(id);
+        Bicycle cachedBicycle = bicycleCache.get(id);
+        if (cachedBicycle != null) {
+            return Optional.of(cachedBicycle);
+        }
+        Optional<Bicycle> bicycle = bicycleDao.findById(id);
+        bicycle.ifPresent(b -> bicycleCache.put(id, b));
+        return bicycle;
     }
 
     @Override
@@ -61,16 +76,20 @@ public class BicycleServiceImpl implements BicycleService {
         if (bicycle.getOwner() != null) {
             bicycle.setOwner(entityManager.merge(bicycle.getOwner()));
         }
-        return bicycleDao.save(bicycle);
+        Bicycle createdBicycle = bicycleDao.save(bicycle);
+        bicycleCache.put(createdBicycle.getId(), createdBicycle);
+        return createdBicycle;
     }
 
-
     @Override
+    @Transactional
     public Bicycle updateBicycle(Bicycle bicycle) {
         if (bicycle.getOwner() != null) {
             bicycle.setOwner(entityManager.merge(bicycle.getOwner()));
         }
-        return bicycleDao.save(bicycle);
+        Bicycle updatedBicycle = bicycleDao.save(bicycle);
+        bicycleCache.put(updatedBicycle.getId(), updatedBicycle);
+        return updatedBicycle;
     }
 
     @Override
@@ -98,7 +117,9 @@ public class BicycleServiceImpl implements BicycleService {
     }
 
     @Override
+    @Transactional
     public void deleteBicycle(Long id) {
         bicycleDao.deleteById(id);
+        bicycleCache.evict(id);
     }
 }
