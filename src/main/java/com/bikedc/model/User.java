@@ -21,7 +21,7 @@ public class User {
     @Column(unique = true)
     private String email;
 
-    @JsonIgnoreProperties({"userBicycles"})
+    @JsonIgnoreProperties({"user"})
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserBicycle> userBicycles = new ArrayList<>();
 

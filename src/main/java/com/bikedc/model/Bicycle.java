@@ -20,7 +20,7 @@ public class Bicycle {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "userBicycles"}) // Важно для предотвращения циклических зависимостей
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "userBicycles"})
     private User owner;
 
     @Version
@@ -84,7 +84,6 @@ public class Bicycle {
     public void setVersion(Long version) {
         this.version = version;
     }
-
 
     @Override
     public boolean equals(Object o) {

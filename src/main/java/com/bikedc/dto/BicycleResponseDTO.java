@@ -10,7 +10,7 @@ public class BicycleResponseDTO {
     private String model;
     private String type;
     private BigDecimal price;
-    private User owner;
+    private UserDTO owner;
 
     public BicycleResponseDTO(Bicycle bicycle) {
         this.id = bicycle.getId();
@@ -18,7 +18,7 @@ public class BicycleResponseDTO {
         this.model = bicycle.getModel();
         this.type = bicycle.getType();
         this.price = bicycle.getPrice();
-        this.owner = bicycle.getOwner();
+        this.owner = bicycle.getOwner() != null ? new UserDTO(bicycle.getOwner()) : null;
     }
 
     public Long getId() {
@@ -41,7 +41,31 @@ public class BicycleResponseDTO {
         return price;
     }
 
-    public User getOwner() {
+    public UserDTO getOwner() {
         return owner;
+    }
+}
+
+class UserDTO {
+    private Long id;
+    private String username;
+    private String email;
+
+    public UserDTO(User user) {
+        this.id = user.getId();
+        this.username = user.getUsername();
+        this.email = user.getEmail();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getEmail() {
+        return email;
     }
 }
