@@ -16,13 +16,11 @@ public interface UserDao extends JpaRepository<User, Long> {
             " AND (:email IS NULL OR u.email = :email)")
     List<User> findByUsernameOrEmail(@Param("username") String username, @Param("email") String email);
 
-    // JPQL запрос для обновления велосипедов при удалении пользователя
     @Modifying
     @Transactional
     @Query("UPDATE Bicycle b SET b.owner = NULL WHERE b.owner.id = :userId")
     void unlinkBicyclesFromUser(@Param("userId") Long userId);
 
-    // Native SQL запрос для демонстрации
     @Modifying
     @Transactional
     @Query(value = "UPDATE bicycles SET owner_id = NULL WHERE owner_id = :userId", nativeQuery = true)
