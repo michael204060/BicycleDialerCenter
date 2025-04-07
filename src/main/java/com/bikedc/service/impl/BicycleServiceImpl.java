@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class BicycleServiceImpl implements BicycleService {
@@ -79,6 +80,21 @@ public class BicycleServiceImpl implements BicycleService {
         Bicycle createdBicycle = bicycleDao.save(bicycle);
         bicycleCache.put(createdBicycle.getId(), createdBicycle);
         return createdBicycle;
+    }
+
+    @Override
+    @Transactional
+    public List<Bicycle> createBicycles(List<Bicycle> bicycles) {
+        return bicycles.stream()
+                .map(bicycle -> {
+                    if (bicycle.getOwner() != null) {
+                        bicycle.setOwner(entityManager.merge(bicycle.getOwner()));
+                    }
+                    Bicycle created = bicycleDao.save(bicycle);
+                    bicycleCache.put(created.getId(), created);
+                    return created;
+                })
+                .collect(Collectors.toList());
     }
 
     @Override
