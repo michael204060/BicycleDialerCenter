@@ -27,4 +27,6 @@ public interface BicycleService {
     UserBicycle rentBicycle(Long userId, Long bicycleId);
 
     UserBicycle returnBicycle(Long userId, Long bicycleId);
+    @Transactional
+    Bicycle matchBicycleWithOwner(Long bicycleId, Long ownerId);
 }

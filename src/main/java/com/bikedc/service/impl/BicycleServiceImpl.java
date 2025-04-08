@@ -127,4 +127,23 @@ public class BicycleServiceImpl implements BicycleService {
         bicycleDao.deleteById(id);
         bicycleCache.evict(id);
     }
+    @Override
+    @Transactional
+    public Bicycle matchBicycleWithOwner(Long bicycleId, Long ownerId) {
+        Bicycle bicycle = bicycleDao.findById(bicycleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + bicycleId));
+
+        if (bicycle.getOwner() != null) {
+            throw new IllegalStateException("Bicycle already has an owner");
+        }
+
+        User owner = userDao.findById(ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + ownerId));
+
+        bicycle.setOwner(owner);
+        Bicycle updatedBicycle = bicycleDao.save(bicycle);
+        bicycleCache.put(updatedBicycle.getId(), updatedBicycle);
+
+        return updatedBicycle;
+    }
 }

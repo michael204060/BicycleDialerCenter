@@ -1,5 +1,6 @@
 package com.bikedc.controller;
 
+import com.bikedc.cache.BicycleCache;
 import com.bikedc.dto.BicycleDTO;
 import com.bikedc.dto.BicycleResponseDTO;
 import com.bikedc.exception.ResourceNotFoundException;
@@ -23,13 +24,15 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/bicycles")
 public class BicycleController {
     private final BicycleService bicycleService;
+    private final BicycleCache bicycleCache;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     @Autowired
-    public BicycleController(BicycleService bicycleService) {
+    public BicycleController(BicycleService bicycleService, BicycleCache bicycleCache) {
         this.bicycleService = bicycleService;
+        this.bicycleCache = bicycleCache;
     }
 
     @GetMapping
@@ -126,6 +129,21 @@ public class BicycleController {
     @PostMapping("/{bicycleId}/return/{userId}")
     public ResponseEntity<UserBicycle> returnBicycle(@PathVariable Long bicycleId, @PathVariable Long userId) {
         return ResponseEntity.ok(bicycleService.returnBicycle(userId, bicycleId));
+    }
+
+    @PostMapping("/{bicycleId}/match/{ownerId}")
+    @Transactional
+    public ResponseEntity<BicycleResponseDTO> matchBicycleWithOwner(
+            @PathVariable Long bicycleId,
+            @PathVariable Long ownerId) {
+        Bicycle bicycle = bicycleService.matchBicycleWithOwner(bicycleId, ownerId);
+        return ResponseEntity.ok(new BicycleResponseDTO(bicycle));
+    }
+
+    @GetMapping("/cache-stats")
+    public ResponseEntity<String> getCacheStats() {
+        bicycleCache.logCacheStats();
+        return ResponseEntity.ok("Cache statistics logged to console");
     }
 
     @DeleteMapping("/{id}")
