@@ -44,6 +44,18 @@ public class BicycleController {
         return ResponseEntity.ok(dtos);
     }
 
+    @GetMapping("/owner")
+    public ResponseEntity<List<BicycleResponseDTO>> getBicyclesByOwnerAttributes(
+            @RequestParam(required = false) Long ownerId,
+            @RequestParam(required = false) String ownerName,
+            @RequestParam(required = false) String ownerEmail) {
+        List<Bicycle> bicycles = bicycleService.getBicyclesByOwnerAttributes(ownerId, ownerName, ownerEmail);
+        List<BicycleResponseDTO> dtos = bicycles.stream()
+                .map(BicycleResponseDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<List<BicycleResponseDTO>> getBicyclesByOwner(@PathVariable Long ownerId) {
         List<Bicycle> bicycles = bicycleService.getBicyclesByOwner(ownerId);

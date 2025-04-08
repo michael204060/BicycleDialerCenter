@@ -60,6 +60,11 @@ public class BicycleServiceImpl implements BicycleService {
     }
 
     @Override
+    public List<Bicycle> getBicyclesByOwnerAttributes(Long ownerId, String ownerName, String ownerEmail) {
+        return bicycleDao.findByOwnerAttributes(ownerId, ownerName, ownerEmail);
+    }
+
+    @Override
     public Optional<Bicycle> getBicycleById(Long id) {
         Bicycle cachedBicycle = bicycleCache.get(id);
         if (cachedBicycle != null) {
