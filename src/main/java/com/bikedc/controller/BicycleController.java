@@ -41,6 +41,9 @@ public class BicycleController {
             @RequestParam(required = false) String model
     ) {
         List<Bicycle> bicycles = bicycleService.getBicyclesByBrandAndModel(brand, model);
+        if (bicycles.isEmpty()) {
+            throw new ResourceNotFoundException("No bicycles found with given criteria");
+        }
         List<BicycleResponseDTO> dtos = bicycles.stream()
                 .map(BicycleResponseDTO::new)
                 .collect(Collectors.toList());
@@ -53,6 +56,9 @@ public class BicycleController {
             @RequestParam(required = false) String ownerName,
             @RequestParam(required = false) String ownerEmail) {
         List<Bicycle> bicycles = bicycleService.getBicyclesByOwnerAttributes(ownerId, ownerName, ownerEmail);
+        if (bicycles.isEmpty()) {
+            throw new ResourceNotFoundException("No bicycles found with given owner criteria");
+        }
         List<BicycleResponseDTO> dtos = bicycles.stream()
                 .map(BicycleResponseDTO::new)
                 .collect(Collectors.toList());
@@ -123,12 +129,14 @@ public class BicycleController {
 
     @PostMapping("/{bicycleId}/rent/{userId}")
     public ResponseEntity<UserBicycle> rentBicycle(@PathVariable Long bicycleId, @PathVariable Long userId) {
-        return ResponseEntity.ok(bicycleService.rentBicycle(userId, bicycleId));
+        UserBicycle userBicycle = bicycleService.rentBicycle(userId, bicycleId);
+        return ResponseEntity.ok(userBicycle);
     }
 
     @PostMapping("/{bicycleId}/return/{userId}")
     public ResponseEntity<UserBicycle> returnBicycle(@PathVariable Long bicycleId, @PathVariable Long userId) {
-        return ResponseEntity.ok(bicycleService.returnBicycle(userId, bicycleId));
+        UserBicycle userBicycle = bicycleService.returnBicycle(userId, bicycleId);
+        return ResponseEntity.ok(userBicycle);
     }
 
     @PostMapping("/{bicycleId}/match/{ownerId}")
@@ -150,6 +158,12 @@ public class BicycleController {
     public ResponseEntity<Void> deleteBicycle(@PathVariable Long id) {
         bicycleService.deleteBicycle(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler({ResourceNotFoundException.class, EntityNotFoundException.class})
+    public ResponseEntity<String> handleNotFoundException(Exception e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
