@@ -15,6 +15,10 @@ public interface BicycleService {
 
     List<Bicycle> getBicyclesByBrandAndModel(String brand, String model);
 
+    List<Bicycle> getBicyclesByOwner(Long ownerId);
+
+    List<Bicycle> getBicyclesByOwnerAttributes(Long ownerId, String ownerName, String ownerEmail);
+
     Optional<Bicycle> getBicycleById(Long id);
 
     @Transactional
@@ -23,4 +27,6 @@ public interface BicycleService {
     UserBicycle rentBicycle(Long userId, Long bicycleId);
 
     UserBicycle returnBicycle(Long userId, Long bicycleId);
+    @Transactional
+    Bicycle matchBicycleWithOwner(Long bicycleId, Long ownerId);
 }

@@ -2,8 +2,8 @@ package com.bikedc.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.math.BigDecimal;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.util.Objects;
 
 @Entity
@@ -20,8 +20,7 @@ public class Bicycle {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer",
-            "handler", "userBicycles"})
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "userBicycles"})
     private User owner;
 
     @Version
