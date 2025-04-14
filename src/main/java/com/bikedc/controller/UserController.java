@@ -3,10 +3,13 @@ package com.bikedc.controller;
 import com.bikedc.exception.ResourceNotFoundException;
 import com.bikedc.model.User;
 import com.bikedc.service.UserService;
-import java.util.List;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -22,12 +25,7 @@ public class UserController {
     public ResponseEntity<List<User>> getUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email) {
-        List<User> users;
-        if (username != null || email != null) {
-            users = userService.getUsersByUsernameAndEmail(username, email);
-        } else {
-            users = List.of();
-        }
+        List<User> users = userService.getUsersByUsernameAndEmail(username, email);
         return ResponseEntity.ok(users);
     }
 
@@ -60,5 +58,11 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler({ResourceNotFoundException.class, EntityNotFoundException.class})
+    public ResponseEntity<String> handleNotFoundException(Exception e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
     }
 }

@@ -43,21 +43,39 @@ public class BicycleServiceImpl implements BicycleService {
 
     @Override
     public List<Bicycle> getBicyclesByBrandAndModel(String brand, String model) {
+        List<Bicycle> bicycles;
         if (brand == null && model == null) {
-            return bicycleDao.findAll();
-        }
-        if (brand != null && model != null) {
-            return bicycleDao.findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase(brand, model);
+            bicycles = bicycleDao.findAll();
+        } else if (brand != null && model != null) {
+            bicycles = bicycleDao.findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase(brand, model);
         } else if (brand != null) {
-            return bicycleDao.findByBrandContainingIgnoreCase(brand);
+            bicycles = bicycleDao.findByBrandContainingIgnoreCase(brand);
         } else {
-            return bicycleDao.findByModelContainingIgnoreCase(model);
+            bicycles = bicycleDao.findByModelContainingIgnoreCase(model);
         }
+
+        if (bicycles.isEmpty()) {
+            throw new ResourceNotFoundException("No bicycles found with given criteria");
+        }
+        return bicycles;
     }
 
     @Override
     public List<Bicycle> getBicyclesByOwner(Long ownerId) {
-        return bicycleDao.findByOwnerId(ownerId);
+        List<Bicycle> bicycles = bicycleDao.findByOwnerId(ownerId);
+        if (bicycles.isEmpty()) {
+            throw new ResourceNotFoundException("No bicycles found for owner with id " + ownerId);
+        }
+        return bicycles;
+    }
+
+    @Override
+    public List<Bicycle> getBicyclesByOwnerAttributes(Long ownerId, String ownerName, String ownerEmail) {
+        List<Bicycle> bicycles = bicycleDao.findByOwnerAttributes(ownerId, ownerName, ownerEmail);
+        if (bicycles.isEmpty()) {
+            throw new ResourceNotFoundException("No bicycles found with given owner criteria");
+        }
+        return bicycles;
     }
 
     @Override
@@ -66,9 +84,8 @@ public class BicycleServiceImpl implements BicycleService {
         if (cachedBicycle != null) {
             return Optional.of(cachedBicycle);
         }
-        Optional<Bicycle> bicycle = bicycleDao.findById(id);
-        bicycle.ifPresent(b -> bicycleCache.put(id, b));
-        return bicycle;
+        return Optional.ofNullable(bicycleDao.findById(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + id));
     }
 
     @Override
@@ -135,7 +152,30 @@ public class BicycleServiceImpl implements BicycleService {
     @Override
     @Transactional
     public void deleteBicycle(Long id) {
+        if (!bicycleDao.existsById(id)) {
+            throw new ResourceNotFoundException("Bicycle not found with id " + id);
+        }
         bicycleDao.deleteById(id);
         bicycleCache.evict(id);
+    }
+
+    @Override
+    @Transactional
+    public Bicycle matchBicycleWithOwner(Long bicycleId, Long ownerId) {
+        Bicycle bicycle = bicycleDao.findById(bicycleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + bicycleId));
+
+        if (bicycle.getOwner() != null) {
+            throw new IllegalStateException("Bicycle already has an owner");
+        }
+
+        User owner = userDao.findById(ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + ownerId));
+
+        bicycle.setOwner(owner);
+        Bicycle updatedBicycle = bicycleDao.save(bicycle);
+        bicycleCache.put(updatedBicycle.getId(), updatedBicycle);
+
+        return updatedBicycle;
     }
 }

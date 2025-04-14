@@ -11,16 +11,22 @@ public interface BicycleService {
     Bicycle createBicycle(Bicycle bicycle);
 
     @Transactional
-    List<Bicycle> createBicycles(List<Bicycle> bicycles);
-
-    @Transactional
     Bicycle updateBicycle(Bicycle bicycle);
 
     List<Bicycle> getBicyclesByBrandAndModel(String brand, String model);
+
     List<Bicycle> getBicyclesByOwner(Long ownerId);
+
+    List<Bicycle> getBicyclesByOwnerAttributes(Long ownerId, String ownerName, String ownerEmail);
+
     Optional<Bicycle> getBicycleById(Long id);
+
     @Transactional
     void deleteBicycle(Long id);
+
     UserBicycle rentBicycle(Long userId, Long bicycleId);
+
     UserBicycle returnBicycle(Long userId, Long bicycleId);
+    @Transactional
+    Bicycle matchBicycleWithOwner(Long bicycleId, Long ownerId);
 }

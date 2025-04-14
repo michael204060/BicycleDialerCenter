@@ -16,6 +16,14 @@ public interface BicycleDao extends JpaRepository<Bicycle, Long> {
     @Query(value = "SELECT * FROM bicycles WHERE owner_id = :ownerId", nativeQuery = true)
     List<Bicycle> findByOwnerIdNative(@Param("ownerId") Long ownerId);
 
+    @Query("SELECT b FROM Bicycle b WHERE " +
+            "(:ownerId IS NULL OR b.owner.id = :ownerId) " +
+            "AND (:ownerName IS NULL OR b.owner.username LIKE %:ownerName%) " +
+            "AND (:ownerEmail IS NULL OR b.owner.email LIKE %:ownerEmail%)")
+    List<Bicycle> findByOwnerAttributes(@Param("ownerId") Long ownerId,
+                                        @Param("ownerName") String ownerName,
+                                        @Param("ownerEmail") String ownerEmail);
+
     List<Bicycle> findByBrandContainingIgnoreCaseOrModelContainingIgnoreCase(String brand, String model);
     List<Bicycle> findByBrandContainingIgnoreCase(String brand);
     List<Bicycle> findByModelContainingIgnoreCase(String model);
