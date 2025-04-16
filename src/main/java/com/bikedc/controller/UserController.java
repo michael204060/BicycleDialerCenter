@@ -3,6 +3,7 @@ package com.bikedc.controller;
 import com.bikedc.exception.ResourceNotFoundException;
 import com.bikedc.model.User;
 import com.bikedc.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ public class UserController {
     }
 
     @GetMapping
+    @Operation(summary = "Getting user by email or by name")
     public ResponseEntity<List<User>> getUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email) {
@@ -30,6 +32,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Getting user by it's id")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
@@ -37,12 +40,14 @@ public class UserController {
     }
 
     @PostMapping
+    @Operation(summary = "Create new user")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User createdUser = userService.createUser(user);
         return ResponseEntity.ok(createdUser);
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Updates users info")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
         User user = userService.getUserById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
@@ -55,6 +60,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Deletes user by id")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();

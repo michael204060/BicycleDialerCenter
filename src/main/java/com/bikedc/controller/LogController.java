@@ -1,6 +1,7 @@
 package com.bikedc.controller;
 
 import com.bikedc.exception.ValidationException;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -26,6 +27,7 @@ public class LogController {
 
 
     @GetMapping("/{date}")
+    @Operation(summary = "Get log file by date")
     public ResponseEntity<Resource> getLogFile(@PathVariable String date) throws IOException {
         LocalDate logDate;
         try {
