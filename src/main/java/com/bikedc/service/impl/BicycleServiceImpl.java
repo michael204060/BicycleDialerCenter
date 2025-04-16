@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,21 +44,15 @@ public class BicycleServiceImpl implements BicycleService {
 
     @Override
     public List<Bicycle> getBicyclesByBrandAndModel(String brand, String model) {
-        List<Bicycle> bicycles;
         if (brand == null && model == null) {
-            bicycles = bicycleDao.findAll();
+            return bicycleDao.findAll();
         } else if (brand != null && model != null) {
-            bicycles = bicycleDao.findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase(brand, model);
+            return bicycleDao.findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase(brand, model);
         } else if (brand != null) {
-            bicycles = bicycleDao.findByBrandContainingIgnoreCase(brand);
+            return bicycleDao.findByBrandContainingIgnoreCase(brand);
         } else {
-            bicycles = bicycleDao.findByModelContainingIgnoreCase(model);
+            return bicycleDao.findByModelContainingIgnoreCase(model);
         }
-
-        if (bicycles.isEmpty()) {
-            throw new ResourceNotFoundException("No bicycles found with given criteria");
-        }
-        return bicycles;
     }
 
     @Override
@@ -84,8 +79,11 @@ public class BicycleServiceImpl implements BicycleService {
         if (cachedBicycle != null) {
             return Optional.of(cachedBicycle);
         }
-        return Optional.ofNullable(bicycleDao.findById(id))
-                .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + id));
+        Optional<Bicycle> bicycle = bicycleDao.findById(id);
+        if (bicycle.isEmpty()) {
+            throw new ResourceNotFoundException("Bicycle not found with id " + id);
+        }
+        return bicycle;
     }
 
     @Override
@@ -102,6 +100,9 @@ public class BicycleServiceImpl implements BicycleService {
     @Override
     @Transactional
     public List<Bicycle> createBicycles(List<Bicycle> bicycles) {
+        if (bicycles == null || bicycles.isEmpty()) {
+            return Collections.emptyList();
+        }
         return bicycles.stream()
                 .map(bicycle -> {
                     if (bicycle.getOwner() != null) {
@@ -123,6 +124,24 @@ public class BicycleServiceImpl implements BicycleService {
         Bicycle updatedBicycle = bicycleDao.save(bicycle);
         bicycleCache.put(updatedBicycle.getId(), updatedBicycle);
         return updatedBicycle;
+    }
+
+    @Override
+    @Transactional
+    public List<Bicycle> updateBicycles(List<Bicycle> bicycles) {
+        if (bicycles == null || bicycles.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return bicycles.stream()
+                .map(bicycle -> {
+                    if (bicycle.getOwner() != null) {
+                        bicycle.setOwner(entityManager.merge(bicycle.getOwner()));
+                    }
+                    Bicycle updated = bicycleDao.save(bicycle);
+                    bicycleCache.put(updated.getId(), updated);
+                    return updated;
+                })
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -4,29 +4,18 @@ import com.bikedc.model.Bicycle;
 import com.bikedc.model.UserBicycle;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.transaction.annotation.Transactional;
 
 public interface BicycleService {
-    @Transactional
-    Bicycle createBicycle(Bicycle bicycle);
-
-    @Transactional
-    Bicycle updateBicycle(Bicycle bicycle);
-
     List<Bicycle> getBicyclesByBrandAndModel(String brand, String model);
-
     List<Bicycle> getBicyclesByOwner(Long ownerId);
-
     List<Bicycle> getBicyclesByOwnerAttributes(Long ownerId, String ownerName, String ownerEmail);
-
     Optional<Bicycle> getBicycleById(Long id);
-
-    @Transactional
-    void deleteBicycle(Long id);
-
+    Bicycle createBicycle(Bicycle bicycle);
+    List<Bicycle> createBicycles(List<Bicycle> bicycles);
+    Bicycle updateBicycle(Bicycle bicycle);
+    List<Bicycle> updateBicycles(List<Bicycle> bicycles);
     UserBicycle rentBicycle(Long userId, Long bicycleId);
-
     UserBicycle returnBicycle(Long userId, Long bicycleId);
-    @Transactional
+    void deleteBicycle(Long id);
     Bicycle matchBicycleWithOwner(Long bicycleId, Long ownerId);
 }

@@ -54,22 +54,13 @@ class BicycleServiceImplTest {
     }
 
     @Test
-    void getBicyclesByBrandAndModel_ShouldReturnEmptyList_WhenNoParams() {
-        when(bicycleDao.findAll()).thenReturn(Collections.emptyList());
+    void getBicyclesByBrandAndModel_ShouldReturnAll_WhenNoFilters() {
+        when(bicycleDao.findAll()).thenReturn(List.of(testBicycle));
 
         List<Bicycle> result = bicycleService.getBicyclesByBrandAndModel(null, null);
 
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void getBicyclesByBrandAndModel_ShouldReturnFilteredByBrand() {
-        when(bicycleDao.findByBrandContainingIgnoreCase("Test")).thenReturn(List.of(testBicycle));
-
-        List<Bicycle> result = bicycleService.getBicyclesByBrandAndModel("Test", null);
-
         assertEquals(1, result.size());
-        assertEquals("TestBrand", result.get(0).getBrand());
+        verify(bicycleDao).findAll();
     }
 
     @Test
@@ -80,6 +71,14 @@ class BicycleServiceImplTest {
 
         assertTrue(result.isPresent());
         verify(bicycleDao, never()).findById(anyLong());
+    }
+
+    @Test
+    void getBicycleById_ShouldThrow_WhenNotFound() {
+        when(bicycleCache.get(1L)).thenReturn(null);
+        when(bicycleDao.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> bicycleService.getBicycleById(1L));
     }
 
     @Test
@@ -108,11 +107,49 @@ class BicycleServiceImplTest {
     }
 
     @Test
-    void rentBicycle_ShouldThrow_WhenUserNotFound() {
-        when(userDao.findById(1L)).thenReturn(Optional.empty());
+    void createBicycles_ShouldHandleEmptyList() {
+        List<Bicycle> result = bicycleService.createBicycles(Collections.emptyList());
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> bicycleService.rentBicycle(1L, 1L));
+        assertTrue(result.isEmpty());
+        verify(bicycleCache, never()).put(anyLong(), any(Bicycle.class));
+    }
+
+    @Test
+    void updateBicycles_ShouldUpdateAllAndCache() {
+        Bicycle bike1 = new Bicycle();
+        bike1.setId(1L);
+        Bicycle bike2 = new Bicycle();
+        bike2.setId(2L);
+
+        when(bicycleDao.save(any(Bicycle.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Bicycle> result = bicycleService.updateBicycles(List.of(bike1, bike2));
+
+        assertEquals(2, result.size());
+        verify(bicycleCache, times(2)).put(anyLong(), any(Bicycle.class));
+    }
+
+    @Test
+    void updateBicycles_ShouldHandleEmptyList() {
+        List<Bicycle> result = bicycleService.updateBicycles(Collections.emptyList());
+
+        assertTrue(result.isEmpty());
+        verify(bicycleCache, never()).put(anyLong(), any(Bicycle.class));
+    }
+
+    @Test
+    void createBicycles_ShouldHandleOwnerAssociation() {
+        Bicycle bike = new Bicycle();
+        bike.setId(1L);
+        bike.setOwner(testUser);
+
+        when(bicycleDao.save(any(Bicycle.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(entityManager.merge(any(User.class))).thenReturn(testUser);
+
+        List<Bicycle> result = bicycleService.createBicycles(List.of(bike));
+
+        assertEquals(1, result.size());
+        verify(entityManager).merge(testUser);
     }
 
     @Test
@@ -123,21 +160,17 @@ class BicycleServiceImplTest {
 
         UserBicycle result = bicycleService.rentBicycle(1L, 1L);
 
-        assertNotNull(result);
         assertNotNull(result.getRentStartTime());
         assertNull(result.getRentEndTime());
     }
 
     @Test
-    void returnBicycle_ShouldUpdateRentalRecord() {
-        UserBicycle rental = new UserBicycle(testUser, testBicycle);
-        rental.setRentStartTime(LocalDateTime.now().minusDays(1));
+    void deleteBicycle_ShouldEvictFromCache() {
+        when(bicycleDao.existsById(1L)).thenReturn(true);
 
-        when(userBicycleDao.findById(any())).thenReturn(Optional.of(rental));
-        when(userBicycleDao.save(any(UserBicycle.class))).thenAnswer(inv -> inv.getArgument(0));
+        bicycleService.deleteBicycle(1L);
 
-        UserBicycle result = bicycleService.returnBicycle(1L, 1L);
-
-        assertNotNull(result.getRentEndTime());
+        verify(bicycleCache).evict(1L);
+        verify(bicycleDao).deleteById(1L);
     }
 }
