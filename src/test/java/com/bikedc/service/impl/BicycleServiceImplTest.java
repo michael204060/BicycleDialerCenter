@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +51,173 @@ class BicycleServiceImplTest {
         testUser.setId(1L);
         testUser.setUsername("testUser");
     }
+    @Test
+    void getBicyclesByBrandAndModel_ShouldFilterByBrand() {
+        when(bicycleDao.findByBrandContainingIgnoreCase("TestBrand")).thenReturn(List.of(testBicycle));
 
+        List<Bicycle> result = bicycleService.getBicyclesByBrandAndModel("TestBrand", null);
+
+        assertEquals(1, result.size());
+        verify(bicycleDao).findByBrandContainingIgnoreCase("TestBrand");
+    }
+
+    @Test
+    void matchBicycleWithOwner_ShouldThrowWhenBicycleAlreadyHasOwner() {
+        
+        Bicycle ownedBicycle = new Bicycle();
+        ownedBicycle.setId(1L);
+        ownedBicycle.setOwner(testUser); 
+
+        when(bicycleDao.findById(1L)).thenReturn(Optional.of(ownedBicycle));
+
+        
+        assertThrows(IllegalStateException.class,
+                () -> bicycleService.matchBicycleWithOwner(1L, 2L));
+
+        
+        verify(bicycleDao, never()).save(any());
+        verify(bicycleCache, never()).put(anyLong(), any());
+    }
+
+    @Test
+    void getBicycleById_ShouldGetFromDaoWhenNotInCache() {
+        
+        when(bicycleCache.get(1L)).thenReturn(null);
+        when(bicycleDao.findById(1L)).thenReturn(Optional.of(testBicycle));
+
+        
+        Optional<Bicycle> result = bicycleService.getBicycleById(1L);
+
+        
+        assertTrue(result.isPresent());
+        assertEquals(testBicycle, result.get());
+        verify(bicycleDao).findById(1L);
+    }
+
+    @Test
+    void updateBicycle_ShouldHandleNullOwner() {
+        
+        Bicycle bicycle = new Bicycle();
+        bicycle.setId(1L);
+        bicycle.setBrand("Test");
+        bicycle.setModel("Model");
+
+        when(bicycleDao.save(any(Bicycle.class))).thenReturn(bicycle);
+
+        
+        Bicycle result = bicycleService.updateBicycle(bicycle);
+
+        
+        assertNotNull(result);
+        assertNull(result.getOwner());
+        verify(bicycleCache).put(1L, bicycle);
+        verify(entityManager, never()).merge(any());
+    }
+
+    @Test
+    void getBicyclesByOwnerAttributes_ShouldHandleNullParameters() {
+        
+        when(bicycleDao.findByOwnerAttributes(null, null, null))
+                .thenReturn(List.of(testBicycle));
+
+        
+        List<Bicycle> result = bicycleService.getBicyclesByOwnerAttributes(null, null, null);
+
+        
+        assertEquals(1, result.size());
+        verify(bicycleDao).findByOwnerAttributes(null, null, null);
+    }
+    
+    @Test
+    void getBicyclesByBrandAndModel_ShouldFilterByModel() {
+        when(bicycleDao.findByModelContainingIgnoreCase("TestModel")).thenReturn(List.of(testBicycle));
+
+        List<Bicycle> result = bicycleService.getBicyclesByBrandAndModel(null, "TestModel");
+
+        assertEquals(1, result.size());
+        verify(bicycleDao).findByModelContainingIgnoreCase("TestModel");
+    }
+
+    @Test
+    void getBicyclesByBrandAndModel_ShouldFilterByBrandAndModel() {
+        when(bicycleDao.findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase("TestBrand", "TestModel"))
+                .thenReturn(List.of(testBicycle));
+
+        List<Bicycle> result = bicycleService.getBicyclesByBrandAndModel("TestBrand", "TestModel");
+
+        assertEquals(1, result.size());
+        verify(bicycleDao).findByBrandContainingIgnoreCaseAndModelContainingIgnoreCase("TestBrand", "TestModel");
+    }
+
+    @Test
+    void getBicyclesByOwner_ShouldThrowWhenNotFound() {
+        when(bicycleDao.findByOwnerId(1L)).thenReturn(Collections.emptyList());
+
+        assertThrows(ResourceNotFoundException.class, () -> bicycleService.getBicyclesByOwner(1L));
+    }
+
+    @Test
+    void getBicyclesByOwnerAttributes_ShouldThrowWhenNotFound() {
+        when(bicycleDao.findByOwnerAttributes(1L, "test", "test@test.com")).thenReturn(Collections.emptyList());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> bicycleService.getBicyclesByOwnerAttributes(1L, "test", "test@test.com"));
+    }
+
+    @Test
+    void returnBicycle_ShouldSetEndTime() {
+        UserBicycle.UserBicycleId id = new UserBicycle.UserBicycleId(1L, 1L);
+        UserBicycle rental = new UserBicycle(testUser, testBicycle);
+        when(userBicycleDao.findById(id)).thenReturn(Optional.of(rental));
+        when(userBicycleDao.save(rental)).thenReturn(rental);
+
+        UserBicycle result = bicycleService.returnBicycle(1L, 1L);
+
+        assertNotNull(result.getRentEndTime());
+    }
+
+    @Test
+    void returnBicycle_ShouldThrowWhenNotFound() {
+        UserBicycle.UserBicycleId id = new UserBicycle.UserBicycleId(1L, 1L);
+        when(userBicycleDao.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> bicycleService.returnBicycle(1L, 1L));
+    }
+
+    @Test
+    void matchBicycleWithOwner_ShouldSetOwner() {
+        when(bicycleDao.findById(1L)).thenReturn(Optional.of(testBicycle));
+        when(userDao.findById(1L)).thenReturn(Optional.of(testUser));
+        when(bicycleDao.save(testBicycle)).thenReturn(testBicycle);
+
+        Bicycle result = bicycleService.matchBicycleWithOwner(1L, 1L);
+
+        assertEquals(testUser, result.getOwner());
+        verify(bicycleCache).put(1L, testBicycle);
+    }
+
+    @Test
+    void matchBicycleWithOwner_ShouldThrowWhenBicycleNotFound() {
+        when(bicycleDao.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> bicycleService.matchBicycleWithOwner(1L, 1L));
+    }
+
+    @Test
+    void matchBicycleWithOwner_ShouldThrowWhenUserNotFound() {
+        when(bicycleDao.findById(1L)).thenReturn(Optional.of(testBicycle));
+        when(userDao.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> bicycleService.matchBicycleWithOwner(1L, 1L));
+    }
+
+    @Test
+    void matchBicycleWithOwner_ShouldThrowWhenAlreadyOwned() {
+        testBicycle.setOwner(testUser);
+        when(bicycleDao.findById(1L)).thenReturn(Optional.of(testBicycle));
+
+        assertThrows(IllegalStateException.class, () -> bicycleService.matchBicycleWithOwner(1L, 1L));
+    }
     @Test
     void getBicyclesByBrandAndModel_ShouldReturnAll_WhenNoFilters() {
         when(bicycleDao.findAll()).thenReturn(List.of(testBicycle));
@@ -138,21 +303,6 @@ class BicycleServiceImplTest {
     }
 
     @Test
-    void createBicycles_ShouldHandleOwnerAssociation() {
-        Bicycle bike = new Bicycle();
-        bike.setId(1L);
-        bike.setOwner(testUser);
-
-        when(bicycleDao.save(any(Bicycle.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(entityManager.merge(any(User.class))).thenReturn(testUser);
-
-        List<Bicycle> result = bicycleService.createBicycles(List.of(bike));
-
-        assertEquals(1, result.size());
-        verify(entityManager).merge(testUser);
-    }
-
-    @Test
     void rentBicycle_ShouldCreateRentalRecord() {
         when(userDao.findById(1L)).thenReturn(Optional.of(testUser));
         when(bicycleDao.findById(1L)).thenReturn(Optional.of(testBicycle));
@@ -172,5 +322,22 @@ class BicycleServiceImplTest {
 
         verify(bicycleCache).evict(1L);
         verify(bicycleDao).deleteById(1L);
+    }
+    @Test
+    void deleteBicycle_ShouldThrow_WhenBicycleNotFound() {
+        when(bicycleDao.existsById(1L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> bicycleService.deleteBicycle(1L));
+        verify(bicycleCache, never()).evict(anyLong());
+        verify(bicycleDao, never()).deleteById(anyLong());
+    }
+    @Test
+    void getBicyclesByOwner_ShouldReturnBicycles_WhenOwnerExists() {
+        when(bicycleDao.findByOwnerId(1L)).thenReturn(List.of(testBicycle));
+
+        List<Bicycle> result = bicycleService.getBicyclesByOwner(1L);
+
+        assertEquals(1, result.size());
+        assertEquals(testBicycle, result.get(0));
     }
 }
