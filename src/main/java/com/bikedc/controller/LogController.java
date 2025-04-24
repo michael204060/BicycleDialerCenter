@@ -1,58 +1,52 @@
 package com.bikedc.controller;
 
-import com.bikedc.exception.ValidationException;
+import com.bikedc.dto.LogTaskResponse;
+import com.bikedc.service.LogService;
 import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/logs")
 public class LogController {
+    private final LogService logService;
 
-    @Value("${logging.file.path}")
-    private String logPath;
+    @Autowired
+    public LogController(LogService logService) {
+        this.logService = logService;
+    }
 
+    @PostMapping("/generate")
+    @Operation(summary = "Generate log file asynchronously")
+    public ResponseEntity<LogTaskResponse> generateLogFile() {
+        String taskId = UUID.randomUUID().toString();
+        CompletableFuture.runAsync(() -> logService.generateLogFile(taskId));
+        return ResponseEntity.ok(new LogTaskResponse(taskId, "PENDING"));
+    }
 
-    @GetMapping("/{date}")
-    @Operation(summary = "Get log file by date")
-    public ResponseEntity<Resource> getLogFile(@PathVariable String date) throws IOException {
-        LocalDate logDate;
-        try {
-            logDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    @GetMapping("/status/{taskId}")
+    @Operation(summary = "Get log generation status")
+    public ResponseEntity<LogTaskResponse> getLogStatus(@PathVariable String taskId) {
+        String status = logService.getLogStatus(taskId);
+        return ResponseEntity.ok(new LogTaskResponse(taskId, status));
+    }
 
-            if (logDate.isAfter(LocalDate.now())) {
-                throw new ValidationException("Date cannot be in the future");
-            }
-        } catch (DateTimeParseException e) {
-            throw new ValidationException("Invalid date format. Please use yyyy-MM-dd");
-        }
-
-        String logFileName = String.format("%s/app-%s.log", logPath, date);
-        Path path = Paths.get(logFileName);
-
-        if (!Files.exists(path)) {
-            throw new ValidationException("No logs available for " + date);
-        }
-
-        Resource resource = new UrlResource(path.toUri());
-
+    @GetMapping("/download/{taskId}")
+    @Operation(summary = "Download generated log file")
+    public ResponseEntity<Resource> downloadLogFile(@PathVariable String taskId) throws IOException {
+        Resource resource = logService.getLogFile(taskId);
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_PLAIN)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"app-logs-" + date + ".log\"")
+                        "attachment; filename=\"generated-logs-" + taskId + ".log\"")
                 .body(resource);
     }
 }
