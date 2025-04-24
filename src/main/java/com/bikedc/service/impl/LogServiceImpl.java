@@ -29,7 +29,7 @@ public class LogServiceImpl implements LogService {
             return taskId;
         } catch (IOException e) {
             logger.error("Error generating log: ", e);
-            return null; // Or throw an exception, depending on your error handling strategy
+            return null; 
         }
     }
 
@@ -64,7 +64,7 @@ public class LogServiceImpl implements LogService {
             if (Paths.get("logs/filtered-" + taskId + ".log").toFile().exists()) {
                 return "COMPLETED";
             } else {
-                return "FAILED"; // Or handle the case where the file doesn't exist more gracefully.
+                return "FAILED"; 
             }
         } catch (Exception e) {
             return "FAILED";
