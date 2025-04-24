@@ -1,5 +1,6 @@
 package com.bikedc.controller;
 
+import com.bikedc.dto.LogGenerateRequest;
 import com.bikedc.dto.LogTaskResponse;
 import com.bikedc.service.LogService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/logs")
@@ -25,10 +24,11 @@ public class LogController {
     }
 
     @PostMapping("/generate")
-    @Operation(summary = "Generate log file asynchronously")
-    public ResponseEntity<LogTaskResponse> generateLogFile() {
-        String taskId = UUID.randomUUID().toString();
-        CompletableFuture.runAsync(() -> logService.generateLogFile(taskId));
+    @Operation(summary = "Generate filtered log file")
+    public ResponseEntity<LogTaskResponse> generateLogFile(
+            @RequestBody LogGenerateRequest request) {
+
+        String taskId = logService.generateFilteredLog(request.getDate(), request.getLevel());
         return ResponseEntity.ok(new LogTaskResponse(taskId, "PENDING"));
     }
 
@@ -46,7 +46,7 @@ public class LogController {
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_PLAIN)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"generated-logs-" + taskId + ".log\"")
+                        "attachment; filename=\"filtered-logs-" + taskId + ".log\"")
                 .body(resource);
     }
 }
