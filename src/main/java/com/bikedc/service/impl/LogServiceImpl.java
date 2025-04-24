@@ -69,6 +69,7 @@ public class LogServiceImpl implements LogService {
         } catch (Exception e) {
             return "FAILED";
         }
+
     }
 
     @Override

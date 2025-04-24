@@ -1,14 +1,17 @@
 package com.bikedc.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 public class LogGenerateRequest {
     private String date; 
-    private String level; 
+    private String level;
 
+    @JsonIgnore
     public LocalDate getParsedDate() {
-        return LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        return date != null ? LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd")) : null;
     }
 
     public String getDate() {
