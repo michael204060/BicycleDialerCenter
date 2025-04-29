@@ -1,6 +1,7 @@
 package com.bikedc.service.impl;
 
 import com.bikedc.service.LogService;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -14,26 +15,47 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
 public class LogServiceImpl implements LogService {
     private static final Logger logger = LoggerFactory.getLogger(LogServiceImpl.class);
+    private static final int PROCESSING_DELAY_SECONDS = 20; 
 
+    private final ConcurrentHashMap<String, String> taskStatus = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> taskFiles = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @Override
     public String generateFilteredLog(String date, String level) {
         String taskId = UUID.randomUUID().toString();
-        try {
-            generateLog(taskId, date, level);
-            return taskId;
-        } catch (IOException e) {
-            logger.error("Error generating log: ", e);
-            return null; 
-        }
+        taskStatus.put(taskId, "PENDING");
+
+        
+        executor.schedule(() -> {
+            taskStatus.put(taskId, "PROCESSING");
+
+            
+            executor.schedule(() -> {
+                try {
+                    processLogFile(taskId, date, level);
+                    taskStatus.put(taskId, "COMPLETED");
+                } catch (Exception e) {
+                    taskStatus.put(taskId, "FAILED: " + e.getMessage());
+                    logger.error("Log processing failed", e);
+                }
+            }, PROCESSING_DELAY_SECONDS, TimeUnit.SECONDS);
+
+        }, 0, TimeUnit.SECONDS);
+
+        return taskId;
     }
 
-    private void generateLog(String taskId, String date, String level) throws IOException {
+    private void processLogFile(String taskId, String date, String level) throws IOException {
         Path sourcePath = Paths.get("logs/app-" + date + ".log");
         if (!Files.exists(sourcePath)) {
             throw new IOException("Log file not found for date: " + date);
@@ -55,29 +77,27 @@ public class LogServiceImpl implements LogService {
 
         Files.write(outputPath, header.getBytes());
         Files.write(outputPath, filteredLines, StandardOpenOption.APPEND);
+        taskFiles.put(taskId, outputPath.toString());
     }
 
-
+    
     @Override
     public String getLogStatus(String taskId) {
-        try {
-            if (Paths.get("logs/filtered-" + taskId + ".log").toFile().exists()) {
-                return "COMPLETED";
-            } else {
-                return "FAILED"; 
-            }
-        } catch (Exception e) {
-            return "FAILED";
-        }
-
+        return taskStatus.getOrDefault(taskId, "NOT_FOUND");
     }
 
     @Override
     public Resource getLogFile(String taskId) throws IOException {
-        Path path = Paths.get("logs/filtered-" + taskId + ".log");
-        if (!Files.exists(path)) {
+        String filePath = taskFiles.get(taskId);
+        if (filePath == null) {
             throw new IOException("File not found for task " + taskId);
         }
+        Path path = Paths.get(filePath);
         return new UrlResource(path.toUri());
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        executor.shutdown();
     }
 }
