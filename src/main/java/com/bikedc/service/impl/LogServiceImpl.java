@@ -39,7 +39,6 @@ public class LogServiceImpl implements LogService {
         executor.schedule(() -> {
             taskStatus.put(taskId, "PROCESSING");
 
-            
             executor.schedule(() -> {
                 try {
                     processLogFile(taskId, date, level);
