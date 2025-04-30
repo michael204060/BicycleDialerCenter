@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Service
 public class LogServiceImpl implements LogService {
     private static final Logger logger = LoggerFactory.getLogger(LogServiceImpl.class);
-    private static final int PROCESSING_DELAY_SECONDS = 20; 
+    private static final int PROCESSING_DELAY_SECONDS = 20;
 
     private final ConcurrentHashMap<String, String> taskStatus = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> taskFiles = new ConcurrentHashMap<>();
@@ -35,7 +35,6 @@ public class LogServiceImpl implements LogService {
         String taskId = UUID.randomUUID().toString();
         taskStatus.put(taskId, "PENDING");
 
-        
         executor.schedule(() -> {
             taskStatus.put(taskId, "PROCESSING");
 
@@ -79,7 +78,6 @@ public class LogServiceImpl implements LogService {
         taskFiles.put(taskId, outputPath.toString());
     }
 
-    
     @Override
     public String getLogStatus(String taskId) {
         return taskStatus.getOrDefault(taskId, "NOT_FOUND");
@@ -87,12 +85,18 @@ public class LogServiceImpl implements LogService {
 
     @Override
     public Resource getLogFile(String taskId) throws IOException {
+        String status = taskStatus.get(taskId);
+
+        if (status == null || !"COMPLETED".equals(status)) {
+            throw new IOException("File not available. Current status: " + status);
+        }
+
         String filePath = taskFiles.get(taskId);
-        if (filePath == null) {
+        if (filePath == null || !Files.exists(Paths.get(filePath))) {
             throw new IOException("File not found for task " + taskId);
         }
-        Path path = Paths.get(filePath);
-        return new UrlResource(path.toUri());
+
+        return new UrlResource(Paths.get(filePath).toUri());
     }
 
     @PreDestroy

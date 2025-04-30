@@ -2,6 +2,7 @@ package com.bikedc.controller;
 
 import com.bikedc.dto.LogGenerateRequest;
 import com.bikedc.dto.LogTaskResponse;
+import com.bikedc.exception.ResourceNotFoundException;
 import com.bikedc.service.LogService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,6 @@ public class LogController {
     @Operation(summary = "Generate filtered log file")
     public ResponseEntity<LogTaskResponse> generateLogFile(
             @RequestBody LogGenerateRequest request) {
-
         String taskId = logService.generateFilteredLog(request.getDate(), request.getLevel());
         return ResponseEntity.ok(new LogTaskResponse(taskId, "PENDING"));
     }
@@ -42,6 +42,16 @@ public class LogController {
     @GetMapping("/download/{taskId}")
     @Operation(summary = "Download generated log file")
     public ResponseEntity<Resource> downloadLogFile(@PathVariable String taskId) throws IOException {
+        String status = logService.getLogStatus(taskId);
+
+        if (status == null || "NOT_FOUND".equals(status)) {
+            throw new ResourceNotFoundException("Task not found");
+        }
+
+        if (!"COMPLETED".equals(status)) {
+            throw new ResourceNotFoundException("Log file is not ready yet. Current status: " + status);
+        }
+
         Resource resource = logService.getLogFile(taskId);
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_PLAIN)
