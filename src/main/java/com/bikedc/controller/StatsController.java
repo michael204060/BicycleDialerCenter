@@ -1,6 +1,7 @@
 package com.bikedc.controller;
 
 import com.bikedc.service.VisitCounterService;
+import org.hibernate.annotations.Synchronize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
