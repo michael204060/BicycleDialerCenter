@@ -3,11 +3,14 @@ package com.bikedc.controller;
 import com.bikedc.cache.BicycleCache;
 import com.bikedc.dto.BicycleDTO;
 import com.bikedc.dto.BicycleResponseDTO;
+import com.bikedc.dto.UserBicycleDTO;
 import com.bikedc.exception.ResourceNotFoundException;
+import com.bikedc.exception.ErrorDetails;
 import com.bikedc.model.Bicycle;
 import com.bikedc.model.User;
 import com.bikedc.model.UserBicycle;
 import com.bikedc.service.BicycleService;
+import com.bikedc.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,24 +27,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.WebRequest;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/bicycles")
-@Tag(name = "Bicycle Management", description = "Endpoints for managing bicycles")
+@Tag(name = "Bicycle Management", description = "Endpoints for managing bicycles and rentals")
 public class BicycleController {
     private final BicycleService bicycleService;
     private final BicycleCache bicycleCache;
+    private final UserService userService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     @Autowired
-    public BicycleController(BicycleService bicycleService, BicycleCache bicycleCache) {
+    public BicycleController(BicycleService bicycleService, BicycleCache bicycleCache, UserService userService) {
         this.bicycleService = bicycleService;
         this.bicycleCache = bicycleCache;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -60,32 +67,32 @@ public class BicycleController {
         return ResponseEntity.ok(dtos);
     }
 
-    @GetMapping("/owner")
-    @Operation(summary = "Get bicycles by owner attributes")
+    @GetMapping("/user")
+    @Operation(summary = "Get bicycles by assigned user attributes")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Found bicycles"),
             @ApiResponse(responseCode = "404", description = "No bicycles found")
     })
-    public ResponseEntity<List<BicycleResponseDTO>> getBicyclesByOwnerAttributes(
-            @Parameter(description = "Owner ID") @RequestParam(required = false) Long ownerId,
-            @Parameter(description = "Owner name") @RequestParam(required = false) String ownerName,
-            @Parameter(description = "Owner email") @RequestParam(required = false) String ownerEmail) {
-        List<Bicycle> bicycles = bicycleService.getBicyclesByOwnerAttributes(ownerId, ownerName, ownerEmail);
+    public ResponseEntity<List<BicycleResponseDTO>> getBicyclesByAssignedUserAttributes(
+            @Parameter(description = "Assigned User ID") @RequestParam(required = false) Long userId,
+            @Parameter(description = "Assigned User name") @RequestParam(required = false) String username,
+            @Parameter(description = "Assigned User email") @RequestParam(required = false) String email) {
+        List<Bicycle> bicycles = bicycleService.getBicyclesByAssignedUserAttributes(userId, username, email);
         List<BicycleResponseDTO> dtos = bicycles.stream()
                 .map(BicycleResponseDTO::new)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
 
-    @GetMapping("/owner/{ownerId}")
-    @Operation(summary = "Get bicycles by owner ID")
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "Get bicycles by assigned user ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Found bicycles"),
             @ApiResponse(responseCode = "404", description = "No bicycles found")
     })
-    public ResponseEntity<List<BicycleResponseDTO>> getBicyclesByOwner(
-            @Parameter(description = "Owner ID") @PathVariable Long ownerId) {
-        List<Bicycle> bicycles = bicycleService.getBicyclesByOwner(ownerId);
+    public ResponseEntity<List<BicycleResponseDTO>> getBicyclesByAssignedUser(
+            @Parameter(description = "Assigned User ID") @PathVariable Long userId) {
+        List<Bicycle> bicycles = bicycleService.getBicyclesByAssignedUser(userId);
         List<BicycleResponseDTO> dtos = bicycles.stream()
                 .map(BicycleResponseDTO::new)
                 .collect(Collectors.toList());
@@ -111,76 +118,7 @@ public class BicycleController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bicycle created"),
             @ApiResponse(responseCode = "400", description = "Invalid input"),
-            @ApiResponse(responseCode = "404", description = "Owner not found")
-    })
-    public ResponseEntity<BicycleResponseDTO> createBicycle(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Bicycle object to be created",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = BicycleDTO.class)))
-            @Valid @RequestBody BicycleDTO bicycleDTO) {
-        Bicycle bicycle = new Bicycle();
-        bicycle.setBrand(bicycleDTO.getBrand());
-        bicycle.setModel(bicycleDTO.getModel());
-        bicycle.setType(bicycleDTO.getType());
-        bicycle.setPrice(bicycleDTO.getPrice());
-
-        if (bicycleDTO.getOwnerId() != null) {
-            try {
-                User owner = entityManager.getReference(User.class, bicycleDTO.getOwnerId());
-                bicycle.setOwner(owner);
-            } catch (EntityNotFoundException e) {
-                throw new ResourceNotFoundException("User not found with id " + bicycleDTO.getOwnerId());
-            }
-        }
-
-        Bicycle createdBicycle = bicycleService.createBicycle(bicycle);
-        return ResponseEntity.ok(new BicycleResponseDTO(createdBicycle));
-    }
-
-    @PutMapping("/{id}")
-    @Transactional
-    @Operation(summary = "Update a bicycle")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Bicycle updated"),
-            @ApiResponse(responseCode = "400", description = "Invalid input"),
-            @ApiResponse(responseCode = "404", description = "Bicycle or owner not found")
-    })
-    public ResponseEntity<BicycleResponseDTO> updateBicycle(
-            @Parameter(description = "ID of bicycle to be updated") @PathVariable Long id,
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "Updated bicycle object",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = BicycleDTO.class)))
-            @Valid @RequestBody BicycleDTO bicycleDTO) {
-        Bicycle bicycle = bicycleService.getBicycleById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + id));
-
-        bicycle.setBrand(bicycleDTO.getBrand());
-        bicycle.setModel(bicycleDTO.getModel());
-        bicycle.setType(bicycleDTO.getType());
-        bicycle.setPrice(bicycleDTO.getPrice());
-
-        if (bicycleDTO.getOwnerId() != null) {
-            try {
-                User owner = entityManager.getReference(User.class, bicycleDTO.getOwnerId());
-                bicycle.setOwner(owner);
-            } catch (EntityNotFoundException e) {
-                throw new ResourceNotFoundException("User not found with id " + bicycleDTO.getOwnerId());
-            }
-        }
-
-        Bicycle updatedBicycle = bicycleService.updateBicycle(bicycle);
-        return ResponseEntity.ok(new BicycleResponseDTO(updatedBicycle));
-    }
-
-    @PostMapping("/bulk")
-    @Transactional
-    @Operation(summary = "Create multiple bicycles")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Bicycles created"),
-            @ApiResponse(responseCode = "400", description = "Invalid input"),
-            @ApiResponse(responseCode = "404", description = "Owner not found")
+            @ApiResponse(responseCode = "404", description = "Assigned user not found")
     })
     public ResponseEntity<List<BicycleResponseDTO>> createBicycles(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -200,12 +138,12 @@ public class BicycleController {
                     bicycle.setType(dto.getType());
                     bicycle.setPrice(dto.getPrice());
 
-                    if (dto.getOwnerId() != null) {
+                    if (dto.getAssignedUserId() != null) {
                         try {
-                            User owner = entityManager.getReference(User.class, dto.getOwnerId());
-                            bicycle.setOwner(owner);
+                            User assignedUser = entityManager.getReference(User.class, dto.getAssignedUserId());
+                            bicycle.setAssignedUser(assignedUser);
                         } catch (EntityNotFoundException e) {
-                            throw new ResourceNotFoundException("User not found with id " + dto.getOwnerId());
+                            throw new ResourceNotFoundException("User not found with id " + dto.getAssignedUserId());
                         }
                     }
                     return bicycle;
@@ -220,13 +158,87 @@ public class BicycleController {
         return ResponseEntity.status(HttpStatus.CREATED).body(dtos);
     }
 
+    @PostMapping("/single") // Changed endpoint name to avoid conflict with /bulk
+    @Transactional
+    @Operation(summary = "Create a single bicycle")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Bicycle created"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "404", description = "Assigned user not found")
+    })
+    public ResponseEntity<BicycleResponseDTO> createSingleBicycle( // Changed method name
+                                                                   @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                                                                           description = "Bicycle object to be created",
+                                                                           required = true,
+                                                                           content = @Content(schema = @Schema(implementation = BicycleDTO.class)))
+                                                                   @Valid @RequestBody BicycleDTO bicycleDTO) {
+        Bicycle bicycle = new Bicycle();
+        bicycle.setBrand(bicycleDTO.getBrand());
+        bicycle.setModel(bicycleDTO.getModel());
+        bicycle.setType(bicycleDTO.getType());
+        bicycle.setPrice(bicycleDTO.getPrice());
+
+        if (bicycleDTO.getAssignedUserId() != null) {
+            try {
+                User assignedUser = entityManager.getReference(User.class, bicycleDTO.getAssignedUserId());
+                bicycle.setAssignedUser(assignedUser);
+            } catch (EntityNotFoundException e) {
+                throw new ResourceNotFoundException("User not found with id " + bicycleDTO.getAssignedUserId());
+            }
+        } else {
+            bicycle.setAssignedUser(null);
+        }
+
+        Bicycle createdBicycle = bicycleService.createBicycle(bicycle);
+        return ResponseEntity.ok(new BicycleResponseDTO(createdBicycle));
+    }
+
+
+    @PutMapping("/{id}")
+    @Transactional
+    @Operation(summary = "Update a bicycle")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Bicycle updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "404", description = "Bicycle or assigned user not found")
+    })
+    public ResponseEntity<BicycleResponseDTO> updateBicycle(
+            @Parameter(description = "ID of bicycle to be updated") @PathVariable Long id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Updated bicycle object",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = BicycleDTO.class)))
+            @Valid @RequestBody BicycleDTO bicycleDTO) {
+
+        Bicycle bicycleToUpdate = new Bicycle();
+        bicycleToUpdate.setId(id);
+        bicycleToUpdate.setBrand(bicycleDTO.getBrand());
+        bicycleToUpdate.setModel(bicycleDTO.getModel());
+        bicycleToUpdate.setType(bicycleDTO.getType());
+        bicycleToUpdate.setPrice(bicycleDTO.getPrice());
+
+        if (bicycleDTO.getAssignedUserId() != null) {
+            try {
+                User assignedUser = entityManager.getReference(User.class, bicycleDTO.getAssignedUserId());
+                bicycleToUpdate.setAssignedUser(assignedUser);
+            } catch (EntityNotFoundException e) {
+                throw new ResourceNotFoundException("User not found with id " + bicycleDTO.getAssignedUserId());
+            }
+        } else {
+            bicycleToUpdate.setAssignedUser(null);
+        }
+
+        Bicycle updatedBicycle = bicycleService.updateBicycle(bicycleToUpdate);
+        return ResponseEntity.ok(new BicycleResponseDTO(updatedBicycle));
+    }
+
     @PutMapping("/bulk")
     @Transactional
     @Operation(summary = "Update multiple bicycles")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bicycles updated"),
             @ApiResponse(responseCode = "400", description = "Invalid input"),
-            @ApiResponse(responseCode = "404", description = "Bicycle or owner not found")
+            @ApiResponse(responseCode = "404", description = "Bicycle or assigned user not found")
     })
     public ResponseEntity<List<BicycleResponseDTO>> updateBicycles(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -238,32 +250,30 @@ public class BicycleController {
             return ResponseEntity.badRequest().build();
         }
 
-        List<Bicycle> updatedBicycles = bicycleDTOs.stream()
+        List<Bicycle> bicyclesToUpdate = bicycleDTOs.stream()
                 .map(dto -> {
-                    Bicycle bicycle = bicycleService.getBicycleById(dto.getId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + dto.getId()));
-
+                    Bicycle bicycle = new Bicycle();
+                    bicycle.setId(dto.getId());
                     bicycle.setBrand(dto.getBrand());
                     bicycle.setModel(dto.getModel());
                     bicycle.setType(dto.getType());
                     bicycle.setPrice(dto.getPrice());
-
-                    if (dto.getOwnerId() != null) {
+                    if (dto.getAssignedUserId() != null) {
                         try {
-                            User owner = entityManager.getReference(User.class, dto.getOwnerId());
-                            bicycle.setOwner(owner);
+                            User assignedUser = entityManager.getReference(User.class, dto.getAssignedUserId());
+                            bicycle.setAssignedUser(assignedUser);
                         } catch (EntityNotFoundException e) {
-                            throw new ResourceNotFoundException("User not found with id " + dto.getOwnerId());
+                            throw new ResourceNotFoundException("User not found with id " + dto.getAssignedUserId());
                         }
                     } else {
-                        bicycle.setOwner(null);
+                        bicycle.setAssignedUser(null);
                     }
-
                     return bicycle;
                 })
-                .map(bicycleService::updateBicycle)
                 .collect(Collectors.toList());
 
+
+        List<Bicycle> updatedBicycles = bicycleService.updateBicycles(bicyclesToUpdate);
         List<BicycleResponseDTO> dtos = updatedBicycles.stream()
                 .map(BicycleResponseDTO::new)
                 .collect(Collectors.toList());
@@ -271,44 +281,47 @@ public class BicycleController {
         return ResponseEntity.ok(dtos);
     }
 
+
     @PostMapping("/{bicycleId}/rent/{userId}")
     @Operation(summary = "Rent a bicycle")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Bicycle rented"),
-            @ApiResponse(responseCode = "404", description = "User or bicycle not found")
+            @ApiResponse(responseCode = "200", description = "Bicycle rented", content = @Content(schema = @Schema(implementation = UserBicycleDTO.class))),
+            @ApiResponse(responseCode = "404", description = "User or bicycle not found"),
+            @ApiResponse(responseCode = "409", description = "Bicycle already rented by this user")
     })
-    public ResponseEntity<UserBicycle> rentBicycle(
+    public ResponseEntity<UserBicycleDTO> rentBicycle(
             @Parameter(description = "Bicycle ID") @PathVariable Long bicycleId,
             @Parameter(description = "User ID") @PathVariable Long userId) {
-        UserBicycle userBicycle = bicycleService.rentBicycle(userId, bicycleId);
-        return ResponseEntity.ok(userBicycle);
+        UserBicycleDTO userBicycleDTO = bicycleService.rentBicycle(userId, bicycleId);
+        return ResponseEntity.ok(userBicycleDTO);
     }
 
     @PostMapping("/{bicycleId}/return/{userId}")
     @Operation(summary = "Return a rented bicycle")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Bicycle returned"),
-            @ApiResponse(responseCode = "404", description = "Rental record not found")
+            @ApiResponse(responseCode = "200", description = "Bicycle returned", content = @Content(schema = @Schema(implementation = UserBicycleDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Rental record not found"),
+            @ApiResponse(responseCode = "409", description = "Bicycle already returned")
     })
-    public ResponseEntity<UserBicycle> returnBicycle(
+    public ResponseEntity<UserBicycleDTO> returnBicycle(
             @Parameter(description = "Bicycle ID") @PathVariable Long bicycleId,
             @Parameter(description = "User ID") @PathVariable Long userId) {
-        UserBicycle userBicycle = bicycleService.returnBicycle(userId, bicycleId);
-        return ResponseEntity.ok(userBicycle);
+        UserBicycleDTO userBicycleDTO = bicycleService.returnBicycle(userId, bicycleId);
+        return ResponseEntity.ok(userBicycleDTO);
     }
 
-    @PostMapping("/{bicycleId}/match/{ownerId}")
+    @PostMapping("/{bicycleId}/assign/{userId}")
     @Transactional
-    @Operation(summary = "Match bicycle with owner")
+    @Operation(summary = "Assign user to bicycle")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Bicycle matched with owner"),
-            @ApiResponse(responseCode = "404", description = "Bicycle or owner not found"),
-            @ApiResponse(responseCode = "409", description = "Bicycle already has an owner")
+            @ApiResponse(responseCode = "200", description = "User assigned to bicycle", content = @Content(schema = @Schema(implementation = BicycleResponseDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Bicycle or user not found"),
+            @ApiResponse(responseCode = "409", description = "Bicycle already has an assigned user or is currently rented")
     })
-    public ResponseEntity<BicycleResponseDTO> matchBicycleWithOwner(
+    public ResponseEntity<BicycleResponseDTO> assignUserToBicycle(
             @Parameter(description = "Bicycle ID") @PathVariable Long bicycleId,
-            @Parameter(description = "Owner ID") @PathVariable Long ownerId) {
-        Bicycle bicycle = bicycleService.matchBicycleWithOwner(bicycleId, ownerId);
+            @Parameter(description = "User ID") @PathVariable Long userId) {
+        Bicycle bicycle = bicycleService.assignUserToBicycle(bicycleId, userId);
         return ResponseEntity.ok(new BicycleResponseDTO(bicycle));
     }
 
@@ -332,5 +345,54 @@ public class BicycleController {
             @Parameter(description = "ID of bicycle to be deleted") @PathVariable Long id) {
         bicycleService.deleteBicycle(id);
         return ResponseEntity.noContent().build();
+    }
+
+
+    @GetMapping("/rentals")
+    @Operation(summary = "Get all bicycle rental records")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Found rental records", content = @Content(schema = @Schema(implementation = UserBicycleDTO.class))),
+            @ApiResponse(responseCode = "404", description = "No rental records found")
+    })
+    public ResponseEntity<List<UserBicycleDTO>> getAllRentals() {
+        List<UserBicycleDTO> rentals = bicycleService.getAllRentals();
+        return ResponseEntity.ok(rentals);
+    }
+
+    @GetMapping("/rentals/user/{userId}")
+    @Operation(summary = "Get rental records for a specific user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Found rental records for user", content = @Content(schema = @Schema(implementation = UserBicycleDTO.class))),
+            @ApiResponse(responseCode = "404", description = "User not found or no rental records for user")
+    })
+    public ResponseEntity<List<UserBicycleDTO>> getRentalsForUser(
+            @Parameter(description = "User ID") @PathVariable Long userId) {
+        userService.getUserById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        List<UserBicycleDTO> rentals = bicycleService.getRentalsForUser(userId);
+        return ResponseEntity.ok(rentals);
+    }
+
+    @GetMapping("/rentals/bicycle/{bicycleId}")
+    @Operation(summary = "Get rental records for a specific bicycle")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Found rental records for bicycle", content = @Content(schema = @Schema(implementation = UserBicycleDTO.class))),
+            @ApiResponse(responseCode = "404", description = "Bicycle not found or no rental records for bicycle")
+    })
+    public ResponseEntity<List<UserBicycleDTO>> getRentalsForBicycle(
+            @Parameter(description = "Bicycle ID") @PathVariable Long bicycleId) {
+        bicycleService.getBicycleById(bicycleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bicycle not found with id " + bicycleId));
+
+        List<UserBicycleDTO> rentals = bicycleService.getRentalsForBicycle(bicycleId);
+        return ResponseEntity.ok(rentals);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ErrorDetails> handleIllegalStateException(IllegalStateException ex, WebRequest request) {
+        ErrorDetails errorDetails = new ErrorDetails(new Date(), "Business Rule Violation", ex.getMessage());
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
 }

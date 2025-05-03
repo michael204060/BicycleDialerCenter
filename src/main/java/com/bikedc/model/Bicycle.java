@@ -21,7 +21,7 @@ public class Bicycle {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "userBicycles"})
-    private User owner;
+    private User assignedUser;
 
     @Version
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
@@ -69,12 +69,12 @@ public class Bicycle {
         this.price = price;
     }
 
-    public User getOwner() {
-        return owner;
+    public User getAssignedUser() {
+        return assignedUser;
     }
 
-    public void setOwner(User owner) {
-        this.owner = owner;
+    public void setAssignedUser(User assignedUser) {
+        this.assignedUser = assignedUser;
     }
 
     public Long getVersion() {

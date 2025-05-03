@@ -3,7 +3,6 @@ package com.bikedc.dto;
 import com.bikedc.model.User;
 
 public class UserDTO {
-    private UserDTO owner;
     private Long id;
     private String username;
     private String email;

@@ -1,6 +1,7 @@
 package com.bikedc.controller;
 
 import com.bikedc.exception.ResourceNotFoundException;
+import com.bikedc.exception.ErrorDetails;
 import com.bikedc.model.User;
 import com.bikedc.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,8 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.WebRequest;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,11 +28,17 @@ public class UserController {
     }
 
     @GetMapping
-    @Operation(summary = "Getting user by email or by name")
+    @Operation(summary = "Getting user by email or by name, or get all users if no criteria provided")
     public ResponseEntity<List<User>> getUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email) {
-        List<User> users = userService.getUsersByUsernameAndEmail(username, email);
+        List<User> users;
+        if (username == null && email == null) {
+            users = userService.getAllUsers();
+        } else {
+            users = userService.getUsersByUsernameAndEmail(username, email);
+        }
+
         return ResponseEntity.ok(users);
     }
 
@@ -51,13 +62,15 @@ public class UserController {
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
         User user = userService.getUserById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
+
         user.setUsername(userDetails.getUsername());
-        user.setPassword(userDetails.getPassword());
         user.setEmail(userDetails.getEmail());
+
 
         User updatedUser = userService.updateUser(user);
         return ResponseEntity.ok(updatedUser);
     }
+
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Deletes user by id")
@@ -67,8 +80,10 @@ public class UserController {
     }
 
     @ExceptionHandler({ResourceNotFoundException.class, EntityNotFoundException.class})
-    public ResponseEntity<String> handleNotFoundException(Exception e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(e.getMessage());
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity<ErrorDetails> handleNotFoundException(Exception e, WebRequest request) {
+        String exceptionClass = e.getClass().getSimpleName();
+        ErrorDetails errorDetails = new ErrorDetails(new Date(), exceptionClass + ": " + e.getMessage(), request.getDescription(false));
+        return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
     }
 }

@@ -1,16 +1,16 @@
 package com.bikedc.dto;
 
 import com.bikedc.model.Bicycle;
+import com.bikedc.model.User;
 import java.math.BigDecimal;
 
 public class BicycleResponseDTO {
-    private final UserDTO owner;
     private Long id;
     private String brand;
     private String model;
     private String type;
     private BigDecimal price;
-
+    private UserDTO assignedUser;
 
     public BicycleResponseDTO(Bicycle bicycle) {
         this.id = bicycle.getId();
@@ -18,7 +18,8 @@ public class BicycleResponseDTO {
         this.model = bicycle.getModel();
         this.type = bicycle.getType();
         this.price = bicycle.getPrice();
-        this.owner = bicycle.getOwner() != null ? new UserDTO(bicycle.getOwner()) : null;
+        User user = bicycle.getAssignedUser();
+        this.assignedUser = user != null ? new UserDTO(user) : null;
     }
 
     public Long getId() {
@@ -41,8 +42,7 @@ public class BicycleResponseDTO {
         return price;
     }
 
-    public UserDTO getOwner() {
-        return owner;
+    public UserDTO getAssignedUser() {
+        return assignedUser;
     }
 }
-

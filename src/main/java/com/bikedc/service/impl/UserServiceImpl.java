@@ -21,19 +21,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<User> getAllUsers() {
+        return userDao.findAll();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<User> getUsersByUsernameAndEmail(String username, String email) {
-        List<User> users = userDao.findByUsernameOrEmail(username, email);
-        if (users.isEmpty()) {
-            throw new ResourceNotFoundException("No users found with given criteria");
-        }
-        return users;
+        return userDao.findByUsernameOrEmail(username, email);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<User> getUserById(Long id) {
-        return Optional.ofNullable(userDao.findById(id))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
+        return userDao.findById(id);
     }
 
     @Override

@@ -14,7 +14,7 @@ public class VisitCounterServiceImpl implements VisitCounterService {
     private final Map<String, AtomicLong> counters = new ConcurrentHashMap<>();
 
     @Override
-    @Synchronized 
+    @Synchronized
     public void incrementCounter(String endpoint) {
         counters.computeIfAbsent(endpoint, k -> new AtomicLong(0)).incrementAndGet();
     }

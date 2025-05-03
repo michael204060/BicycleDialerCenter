@@ -3,20 +3,16 @@ package com.bikedc.controller;
 import com.bikedc.dto.LogGenerateRequest;
 import com.bikedc.dto.LogTaskResponse;
 import com.bikedc.exception.ResourceNotFoundException;
-import com.bikedc.exception.ValidationException;
 import com.bikedc.service.LogService;
 import io.swagger.v3.oas.annotations.Operation;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.time.format.DateTimeParseException;
 
 @RestController
 @RequestMapping("/api/logs")
@@ -31,28 +27,15 @@ public class LogController {
     @PostMapping("/generate")
     @Operation(summary = "Generate filtered log file")
     public ResponseEntity<LogTaskResponse> generateLogFile(
-            @Valid @RequestBody LogGenerateRequest request) {
-        try {
-            
-            request.getParsedDate(); 
-
-            String taskId = logService.generateFilteredLog(request.getDate(), request.getLevel());
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new LogTaskResponse(taskId, "PENDING"));
-        } catch (DateTimeParseException e) {
-            throw new ValidationException("Invalid date format. Required format: yyyy-MM-dd");
-        }
+            @RequestBody LogGenerateRequest request) {
+        String taskId = logService.generateFilteredLog(request.getDate(), request.getLevel());
+        return ResponseEntity.ok(new LogTaskResponse(taskId, "PENDING"));
     }
 
     @GetMapping("/status/{taskId}")
     @Operation(summary = "Get log generation status")
     public ResponseEntity<LogTaskResponse> getLogStatus(@PathVariable String taskId) {
         String status = logService.getLogStatus(taskId);
-
-        if (status == null || "NOT_FOUND".equals(status)) {
-            throw new ResourceNotFoundException("Task not found with id: " + taskId);
-        }
-
         return ResponseEntity.ok(new LogTaskResponse(taskId, status));
     }
 
@@ -62,7 +45,7 @@ public class LogController {
         String status = logService.getLogStatus(taskId);
 
         if (status == null || "NOT_FOUND".equals(status)) {
-            throw new ResourceNotFoundException("Task not found with id: " + taskId);
+            throw new ResourceNotFoundException("Task not found");
         }
 
         if (!"COMPLETED".equals(status)) {

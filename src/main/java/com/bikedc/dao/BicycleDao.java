@@ -10,19 +10,19 @@ import java.util.List;
 
 @Repository
 public interface BicycleDao extends JpaRepository<Bicycle, Long> {
-    @Query("SELECT b FROM Bicycle b WHERE b.owner.id = :ownerId")
-    List<Bicycle> findByOwnerId(@Param("ownerId") Long ownerId);
+    @Query("SELECT b FROM Bicycle b WHERE b.assignedUser.id = :userId")
+    List<Bicycle> findByAssignedUserId(@Param("userId") Long userId);
 
-    @Query(value = "SELECT * FROM bicycles WHERE owner_id = :ownerId", nativeQuery = true)
-    List<Bicycle> findByOwnerIdNative(@Param("ownerId") Long ownerId);
+    @Query(value = "SELECT * FROM bicycles WHERE owner_id = :userId", nativeQuery = true)
+    List<Bicycle> findByAssignedUserIdNative(@Param("userId") Long userId);
 
     @Query("SELECT b FROM Bicycle b WHERE " +
-            "(:ownerId IS NULL OR b.owner.id = :ownerId) " +
-            "AND (:ownerName IS NULL OR b.owner.username LIKE %:ownerName%) " +
-            "AND (:ownerEmail IS NULL OR b.owner.email LIKE %:ownerEmail%)")
-    List<Bicycle> findByOwnerAttributes(@Param("ownerId") Long ownerId,
-                                        @Param("ownerName") String ownerName,
-                                        @Param("ownerEmail") String ownerEmail);
+            "(:userId IS NULL OR b.assignedUser.id = :userId) " +
+            "AND (:username IS NULL OR b.assignedUser.username LIKE %:username%) " +
+            "AND (:email IS NULL OR b.assignedUser.email LIKE %:email%)")
+    List<Bicycle> findByAssignedUserAttributes(@Param("userId") Long userId,
+                                               @Param("username") String username,
+                                               @Param("email") String email);
 
     List<Bicycle> findByBrandContainingIgnoreCaseOrModelContainingIgnoreCase(String brand, String model);
     List<Bicycle> findByBrandContainingIgnoreCase(String brand);

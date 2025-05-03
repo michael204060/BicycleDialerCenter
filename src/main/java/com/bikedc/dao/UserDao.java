@@ -18,7 +18,7 @@ public interface UserDao extends JpaRepository<User, Long> {
 
     @Modifying
     @Transactional
-    @Query("UPDATE Bicycle b SET b.owner = NULL WHERE b.owner.id = :userId")
+    @Query("UPDATE Bicycle b SET b.assignedUser = NULL WHERE b.assignedUser.id = :userId")
     void unlinkBicyclesFromUser(@Param("userId") Long userId);
 
     @Modifying

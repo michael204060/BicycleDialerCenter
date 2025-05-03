@@ -6,8 +6,11 @@ import java.util.Optional;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface UserService {
+    List<User> getAllUsers();
+
     List<User> getUsersByUsernameAndEmail(String username, String email);
 
+    @Transactional(readOnly = true)
     Optional<User> getUserById(Long id);
 
     @Transactional
@@ -19,4 +22,3 @@ public interface UserService {
     @Transactional
     void deleteUser(Long id);
 }
-

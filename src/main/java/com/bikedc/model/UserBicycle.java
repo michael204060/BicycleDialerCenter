@@ -22,7 +22,7 @@ public class UserBicycle implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("bicycleId")
     @JoinColumn(name = "bicycle_id")
-    @JsonIgnoreProperties({"userBicycles", "owner"})
+    @JsonIgnoreProperties({"userBicycles", "assignedUser"})
     private Bicycle bicycle;
 
     private LocalDateTime rentStartTime;

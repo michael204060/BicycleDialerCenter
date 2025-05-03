@@ -11,7 +11,7 @@ public class BicycleDTO {
     private String model;
     private String type;
     private BigDecimal price;
-    private Long ownerId;
+    private Long assignedUserId;
 
     public BicycleDTO() {}
 
@@ -21,9 +21,9 @@ public class BicycleDTO {
         this.model = bicycle.getModel();
         this.type = bicycle.getType();
         this.price = bicycle.getPrice();
-        User owner = bicycle.getOwner();
-        if (owner != null) {
-            this.ownerId = owner.getId();
+        User assignedUser = bicycle.getAssignedUser();
+        if (assignedUser != null) {
+            this.assignedUserId = assignedUser.getId();
         }
     }
 
@@ -67,11 +67,11 @@ public class BicycleDTO {
         this.price = price;
     }
 
-    public Long getOwnerId() {
-        return ownerId;
+    public Long getAssignedUserId() {
+        return assignedUserId;
     }
 
-    public void setOwnerId(Long ownerId) {
-        this.ownerId = ownerId;
+    public void setAssignedUserId(Long assignedUserId) {
+        this.assignedUserId = assignedUserId;
     }
 }
